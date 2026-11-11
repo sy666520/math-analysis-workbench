@@ -1142,6 +1142,9 @@ table.tbl tr:last-child td { border-bottom: 0; }
 /* 触屏画布：手势由脚本接管，禁止浏览器默认滚动 */
 #plotCanvas, #thmCanvas { touch-action: none; }
 
+/* 窄屏知识点详情页：桌面隐藏，窄屏推入 */
+.node-page { display: none; }
+
 /* ---------- 平板窄栏 ---------- */
 @media (max-width: 1180px) {
   .map-wrap { grid-template-columns: 1fr; grid-template-rows: 1fr 320px; }
@@ -1271,6 +1274,75 @@ table.tbl tr:last-child td { border-bottom: 0; }
     border-top: 1px solid var(--line);
     padding: 16px 14px 32px;
   }
+
+  /* --- 知识点详情页：整页推入，独立滚动，返回回列表 --- */
+  .detail { display: none; }
+  .node-page {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0; right: 0; top: 0; bottom: 0;
+    z-index: 70;
+    background: var(--paper);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform .26s cubic-bezier(.32, .72, 0, 1), visibility 0s linear .26s;
+    will-change: transform;
+  }
+  .node-page.on {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform .26s cubic-bezier(.32, .72, 0, 1), visibility 0s linear 0s;
+  }
+  .np-bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+  }
+  .np-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 8px 6px 2px;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .np-back:active { opacity: .55; }
+  .np-crumb {
+    flex: 1;
+    min-width: 0;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-4);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .np-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    max-width: 860px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 18px 16px calc(28px + env(safe-area-inset-bottom, 0px));
+    overscroll-behavior: contain;
+  }
+  .np-body .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+  .np-body .detail-head h3 { font-size: 19px; }
+  .np-body .detail-actions { padding-bottom: 6px; }
 
   /* 长公式在窄屏上缩小字号，仍超宽时可横向滑动 */
   .formula-box { padding: 10px 11px; -webkit-overflow-scrolling: touch; }

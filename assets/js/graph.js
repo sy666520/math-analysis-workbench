@@ -278,6 +278,7 @@ window.Graph = (function () {
   }
 
   function select(id, fromUser) {
+    if (!window.KB.byId[id]) return;   // 旧链接或失效 id 不应让整页崩掉
     selected = id;
     Object.values(nodeEls).forEach(e => e.classList.remove('sel'));
     if (nodeEls[id]) nodeEls[id].classList.add('sel');

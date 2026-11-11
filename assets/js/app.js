@@ -57,6 +57,54 @@ window.App = (function () {
     return window.KB.chapters.find(c => c.id === node.ch);
   }
 
+  const isNarrow = () => window.matchMedia('(max-width: 860px)').matches;
+
+  /* 窄屏详情页：整页推入 + 返回。用 history 记录一层，
+     这样安卓返回键、浏览器返回都是「回到列表」而不是退出整个站点。 */
+  let npOpen = false;
+  let npPushed = false;
+  let npScroll = 0;
+  let detailNodeId = null;
+
+  function openNodePage(id, ch) {
+    const page = $('nodePage');
+    if (!page) return;
+    $('npCrumb').textContent = ch ? `${ch.idx} · ${ch.title}` : '';
+    const list = $('views');
+    npScroll = list ? list.scrollTop : 0;
+    page.classList.add('on');
+    page.setAttribute('aria-hidden', 'false');
+    $('nodePageBody').scrollTop = 0;
+    npOpen = true;
+
+    try {
+      if (npPushed) history.replaceState({ np: id }, '', '#' + id);
+      else { history.pushState({ np: id }, '', '#' + id); npPushed = true; }
+    } catch (e) {}
+  }
+
+  function closeNodePage(fromPop, skipRestore) {
+    if (!npOpen) return;
+    npOpen = false;
+    const page = $('nodePage');
+    if (page) {
+      page.classList.remove('on');
+      page.setAttribute('aria-hidden', 'true');
+    }
+    // 回到列表时停在原来的位置：某些内核在 history 返回后会重置滚动，这里显式恢复
+    if (!skipRestore && current === 'map') {
+      const v = $('views');
+      if (v) {
+        v.scrollTop = npScroll;
+        requestAnimationFrame(() => { if (current === 'map') v.scrollTop = npScroll; });
+      }
+    }
+    if (!fromPop && npPushed) {
+      npPushed = false;
+      try { history.back(); } catch (e) {}
+    }
+  }
+
   function renderDetail(id, fromUser) {
     const node = window.KB.byId[id];
     if (!node) return;
@@ -78,7 +126,7 @@ window.App = (function () {
       </div>`;
 
     if (node.formula) {
-      html += `<div class="formula-box" id="detailFormula"></div>`;
+      html += `<div class="formula-box"></div>`;
     }
 
     html += `<div class="block"><h4>一句话定位</h4><p>${node.idea || ''}</p></div>`;
@@ -100,7 +148,7 @@ window.App = (function () {
 
     if (deps.length) {
       html += `<div class="block"><h4>前置知识</h4><div class="related">
-        ${deps.map(d => `<button data-goto="${d}">← ${d.title}</button>`).join('')}</div></div>`;
+        ${deps.map(d => `<button data-goto="${d.id}">← ${d.title}</button>`).join('')}</div></div>`;
     }
 
     if (users.length) {
@@ -109,44 +157,57 @@ window.App = (function () {
     }
 
     html += `<div class="detail-actions">
-      <button class="btn sm" id="btnToMistake">记一道相关错题</button>
-      <button class="btn sm ghost" id="btnAsk">问助教</button>
+      <button class="btn sm" data-act="mistake">记一道相关错题</button>
+      <button class="btn sm ghost" data-act="ask">问助教</button>
     </div>`;
 
-    $('detailEmpty').style.display = 'none';
-    $('detail').scrollTop = 0;
-    const body = $('detailBody');
-    body.style.display = 'block';
+    // 宽屏：渲染进右侧面板；窄屏：渲染进独立详情页（点击即跳转，不再滚动长列表）
+    const narrow = isNarrow();
+    const body = narrow ? $('nodePageBody') : $('detailBody');
+    detailNodeId = id;
+
+    if (!narrow) {
+      $('detailEmpty').style.display = 'none';
+      $('detail').scrollTop = 0;
+      body.style.display = 'block';
+    }
     body.innerHTML = html;
 
-    // 移动端：详情面板在页面下方，用户点选节点后滚动到详情顶部
-    // （首次进入的默认选中不滚动，否则一打开就跳过整个列表）
-    if (fromUser && window.matchMedia('(max-width: 860px)').matches) {
-      requestAnimationFrame(() => body.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-    }
-
     if (node.formula) {
-      const fbox = $('detailFormula');
+      const fbox = body.querySelector('.formula-box');
       try { katex.render(node.formula, fbox, { displayMode: true, throwOnError: false, strict: false }); }
       catch (e) { fbox.textContent = node.formula; }
     }
     renderMath(body);
 
     body.querySelectorAll('[data-goto]').forEach(b => {
-      b.addEventListener('click', () => window.Graph.select(b.dataset.goto));
+      b.addEventListener('click', () => window.Graph.select(b.dataset.goto, true));
     });
 
-    $('btnToMistake').addEventListener('click', () => {
-      go('mistakes');
-      $('mkTag').value = id;
-      $('mkTitle').focus();
-      toast('已关联知识点「' + node.title + '」');
-    });
+    const bm = body.querySelector('[data-act="mistake"]');
+    if (bm) {
+      bm.addEventListener('click', () => {
+        go('mistakes');
+        $('mkTag').value = id;
+        $('mkTitle').focus();
+        toast('已关联知识点「' + node.title + '」');
+      });
+    }
 
-    $('btnAsk').addEventListener('click', () => {
-      go('tutor');
-      window.Tutor.ask(node.title + ' 的成立条件和常见错误是什么？');
-    });
+    const ba = body.querySelector('[data-act="ask"]');
+    if (ba) {
+      ba.addEventListener('click', () => {
+        go('tutor');
+        window.Tutor.ask(node.title + ' 的成立条件和常见错误是什么？');
+      });
+    }
+
+    // 用户主动点选才推入详情页；初始化时的默认选中不跳转
+    if (narrow) {
+      if (fromUser) openNodePage(id, ch);
+    } else if (npOpen) {
+      closeNodePage(true);
+    }
   }
 
   window.onNodeSelect = renderDetail;
@@ -156,6 +217,8 @@ window.App = (function () {
 
   function go(view, nodeId) {
     if (!VIEW_META[view]) return;
+    // 切换模块时先收起详情页，避免返回后残留在别的模块上
+    if (npOpen && view !== 'map') closeNodePage(true, true);
     current = view;
 
     document.querySelectorAll('.nav-item[data-view]').forEach(b =>
@@ -273,6 +336,23 @@ window.App = (function () {
 
     const hash = location.hash.replace('#', '');
     if (VIEW_META[hash]) go(hash);
+
+    // 详情页返回：按钮与浏览器/安卓返回键都要能回到列表
+    const back = $('npBack');
+    if (back) back.addEventListener('click', () => closeNodePage(false));
+    window.addEventListener('popstate', () => {
+      if (npOpen) { npPushed = false; closeNodePage(true); }
+    });
+
+    // 横竖屏或窗口宽度跨过断点时，详情在「面板」与「独立页」之间换位置
+    let wasNarrow = isNarrow();
+    window.addEventListener('resize', () => {
+      const now = isNarrow();
+      if (now === wasNarrow) return;
+      wasNarrow = now;
+      if (!now) closeNodePage(true);
+      if (detailNodeId) renderDetail(detailNodeId, false);
+    });
 
     refreshFoot();
   }

@@ -50,6 +50,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-ui);
+  overflow-x: hidden;
   font-size: 14px;
   line-height: 1.62;
   -webkit-font-smoothing: antialiased;
@@ -1092,7 +1093,7 @@ table.tbl tr:last-child td { border-bottom: 0; }
    ============================================================ */
 .overlay {
   position: absolute;
-  inset: 0;
+  top: 0; right: 0; bottom: 0; left: 0;
   background: rgba(26,27,30,.28);
   display: none;
   place-items: center;
@@ -1162,6 +1163,8 @@ table.tbl tr:last-child td { border-bottom: 0; }
     flex-direction: column;
     height: 100vh;
     height: 100dvh; /* 手机浏览器地址栏收展时保持正确视口 */
+    /* 旧版 iOS Safari 不认 dvh，用 JS 写入的 --vh 兜底，避免底栏被地址栏顶出屏幕 */
+    height: calc(var(--vh, 1vh) * 100);
   }
   .main { order: -1; flex: 1; min-height: 0; }
 

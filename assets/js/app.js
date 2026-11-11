@@ -300,7 +300,16 @@ window.App = (function () {
   }
 
   /* ---------- 启动 ---------- */
+  function syncViewportHeight() {
+    // 旧版 iOS Safari 不支持 dvh，用 --vh 兜底；地址栏收展时同步更新
+    document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+  }
+
   function init() {
+    syncViewportHeight();
+    window.addEventListener('resize', syncViewportHeight);
+    window.addEventListener('orientationchange', () => setTimeout(syncViewportHeight, 120));
+
     document.querySelectorAll('.nav-item[data-view]').forEach(b => {
       b.addEventListener('click', () => go(b.dataset.view));
     });

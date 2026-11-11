@@ -57,7 +57,7 @@ window.App = (function () {
     return window.KB.chapters.find(c => c.id === node.ch);
   }
 
-  function renderDetail(id) {
+  function renderDetail(id, fromUser) {
     const node = window.KB.byId[id];
     if (!node) return;
     const ch = chapterOf(node);
@@ -119,6 +119,12 @@ window.App = (function () {
     body.style.display = 'block';
     body.innerHTML = html;
 
+    // 移动端：详情面板在页面下方，用户点选节点后滚动到详情顶部
+    // （首次进入的默认选中不滚动，否则一打开就跳过整个列表）
+    if (fromUser && window.matchMedia('(max-width: 860px)').matches) {
+      requestAnimationFrame(() => body.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+
     if (node.formula) {
       const fbox = $('detailFormula');
       try { katex.render(node.formula, fbox, { displayMode: true, throwOnError: false, strict: false }); }
@@ -159,6 +165,10 @@ window.App = (function () {
 
     $('viewTitle').textContent = VIEW_META[view].title;
     $('viewDesc').textContent = VIEW_META[view].desc;
+
+    // 切换模块时回到顶部，避免沿用上一个模块的滚动位置（移动端尤其明显）
+    const scroller = $('views');
+    if (scroller) scroller.scrollTop = 0;
 
     if (view === 'lab' && window.Lab) window.Lab.onShow();
     if (view === 'theorem' && window.Theorem) window.Theorem.onShow();

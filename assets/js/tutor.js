@@ -196,7 +196,14 @@ window.Tutor = (function () {
 
   function scrollBottom() {
     const el = $('chatLog');
+    // 视图未激活时不滚动，否则会把外层页面（此时显示的是别的模块）拉到底
+    if (!el.offsetParent) return;
     el.scrollTop = el.scrollHeight;
+    // 移动端整页滚动模式下 chatLog 不是滚动容器，改为滚动外层 .views
+    if (el.clientHeight >= el.scrollHeight) {
+      const sc = document.getElementById('views');
+      if (sc) sc.scrollTop = sc.scrollHeight;
+    }
   }
 
   function updateStats() {

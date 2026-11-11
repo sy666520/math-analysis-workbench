@@ -41,6 +41,7 @@ window.Plotter = (function () {
       this.cursorCb = null;
       this._bindDrag();
       this._bindWheel();
+      this._bindTouch();
       this.resize();
     }
 
@@ -283,6 +284,69 @@ window.Plotter = (function () {
         );
         this.onChange && this.onChange();
       }, { passive: false });
+    }
+
+    /* 触屏：单指拖动平移，双指捏合缩放（缩放锚点在双指中点） */
+    _bindTouch() {
+      const el = this.canvas;
+      let mode = 0;              // 0 无手势 / 1 平移 / 2 捏合
+      let lastX = 0, lastY = 0;  // 上次触点（画布坐标）
+      let lastDist = 0, lastMid = null;
+
+      const pos = t => {
+        const r = el.getBoundingClientRect();
+        return { x: t.clientX - r.left, y: t.clientY - r.top };
+      };
+
+      el.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) {
+          mode = 1;
+          const p = pos(e.touches[0]);
+          lastX = p.x; lastY = p.y;
+        } else if (e.touches.length >= 2) {
+          mode = 2;
+          const a = pos(e.touches[0]), b = pos(e.touches[1]);
+          lastDist = Math.hypot(a.x - b.x, a.y - b.y);
+          lastMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        }
+      }, { passive: true });
+
+      el.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if (mode === 1 && e.touches.length === 1) {
+          const p = pos(e.touches[0]);
+          const dx = (p.x - lastX) / this.w * (this.xmax - this.xmin);
+          const dy = (p.y - lastY) / this.h * (this.ymax - this.ymin);
+          this.setRange(this.xmin - dx, this.xmax - dx, this.ymin + dy, this.ymax + dy);
+          lastX = p.x; lastY = p.y;
+          this.onChange && this.onChange();
+        } else if (mode === 2 && e.touches.length >= 2) {
+          const a = pos(e.touches[0]), b = pos(e.touches[1]);
+          const d = Math.hypot(a.x - b.x, a.y - b.y);
+          const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+          if (lastDist > 0 && d > 0) {
+            // 双指张开（d 变大）→ 视野范围缩小 → 放大
+            const k = lastDist / d;
+            const mx = this.invX(mid.x), my = this.invY(mid.y);
+            this.setRange(
+              mx + (this.xmin - mx) * k, mx + (this.xmax - mx) * k,
+              my + (this.ymin - my) * k, my + (this.ymax - my) * k
+            );
+            // 双指中点同时移动 → 平移
+            if (lastMid) {
+              const dx = (mid.x - lastMid.x) / this.w * (this.xmax - this.xmin);
+              const dy = (mid.y - lastMid.y) / this.h * (this.ymax - this.ymin);
+              this.setRange(this.xmin - dx, this.xmax - dx, this.ymin + dy, this.ymax + dy);
+            }
+            this.onChange && this.onChange();
+          }
+          lastDist = d; lastMid = mid;
+        }
+      }, { passive: false });
+
+      const end = () => { mode = 0; };
+      el.addEventListener('touchend', end, { passive: true });
+      el.addEventListener('touchcancel', end, { passive: true });
     }
 
     zoom(k) {

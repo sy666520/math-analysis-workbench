@@ -43,6 +43,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -1138,7 +1139,10 @@ table.tbl tr:last-child td { border-bottom: 0; }
 }
 .toast.on { opacity: 1; transform: translateY(0); }
 
-/* ---------- 打印 / 窄屏 ---------- */
+/* 触屏画布：手势由脚本接管，禁止浏览器默认滚动 */
+#plotCanvas, #thmCanvas { touch-action: none; }
+
+/* ---------- 平板窄栏 ---------- */
 @media (max-width: 1180px) {
   .map-wrap { grid-template-columns: 1fr; grid-template-rows: 1fr 320px; }
   .detail { border-left: 0; border-top: 1px solid var(--line); }
@@ -1146,13 +1150,220 @@ table.tbl tr:last-child td { border-bottom: 0; }
   .lab { grid-template-columns: 280px 1fr; }
 }
 
-@media (max-width: 900px) {
-  .app { grid-template-columns: 68px 1fr; }
-  .brand-text, .nav-item span:not(.nav-key), .side-foot { display: none; }
-  .nav-item { justify-content: center; }
-  .lab { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-  .lab-side { border-right: 0; border-bottom: 1px solid var(--line); max-height: 260px; }
-  .tutor { grid-template-columns: 1fr; }
-  .tutor-side { display: none; }
+/* ============================================================
+   移动端（≤ 860px）：侧边栏 → 底部标签栏，整页自然滚动
+   ============================================================ */
+@media (max-width: 860px) {
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh; /* 手机浏览器地址栏收展时保持正确视口 */
+  }
+  .main { order: -1; flex: 1; min-height: 0; }
+
+  /* --- 底部标签栏 --- */
+  .sidebar {
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: stretch;
+    padding: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-right: 0;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .brand, .nav-label, .side-foot { display: none; }
+  nav.nav { flex-direction: row; gap: 0; flex: 1; }
+  .nav-item {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    padding: 7px 2px 6px;
+    font-size: 10.5px;
+    border-radius: 0;
+    min-width: 0;
+  }
+  .nav-item span:not(.nav-key) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .nav-item svg { width: 20px; height: 20px; flex: 0 0 20px; }
+  .nav-item .nav-key { display: none; }
+  .nav-item.active::before {
+    left: 24%; right: 24%;
+    top: 0; bottom: auto;
+    width: auto; height: 2.5px;
+  }
+
+  /* --- 顶栏 --- */
+  .topbar {
+    height: auto;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    gap: 4px 10px;
+  }
+  .topbar-title { flex-direction: column; align-items: flex-start; gap: 1px; }
+  .topbar-title h2 { font-size: 16px; }
+  .topbar-title span { white-space: normal; font-size: 11px; }
+
+  .views { -webkit-overflow-scrolling: touch; }
+
+  /* --- 知识图谱：手机上改为按章分组的列表 --- */
+  #view-map.active { height: auto; }
+  .map-wrap { display: block; height: auto; }
+  .map-canvas {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    background: var(--surface);
+  }
+  .map-toolbar { flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
+  .map-toolbar .field { width: 100%; }
+  .map-legend, #mapReset { display: none; }
+
+  .map-list { display: block; }
+  .ml-group { border-top: 1px solid var(--line); }
+  .ml-ch {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 9px 14px 6px;
+    background: var(--paper);
+  }
+  .ml-idx { font-family: var(--font-mono); font-size: 10px; color: var(--ink-4); }
+  .ml-name { font-family: var(--font-serif); font-size: 12.5px; color: var(--ink-2); letter-spacing: .03em; }
+  .ml-count { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--ink-4); }
+  .ml-item {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+    min-height: 52px;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid #F2EFE6;
+    background: var(--surface);
+    text-align: left;
+  }
+  .ml-item:last-child { border-bottom: 0; }
+  .ml-item.dim { display: none; }
+  .ml-bar { flex: 0 0 3px; width: 3px; }
+  .ml-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    padding: 9px 0 9px 12px;
+  }
+  .ml-t { font-size: 13.5px; color: var(--ink); line-height: 1.45; }
+  .ml-s { font-size: 10.5px; color: var(--ink-4); letter-spacing: .04em; }
+  .ml-arrow { display: grid; place-items: center; padding: 0 12px; color: var(--ink-4); font-size: 17px; }
+  .ml-item.sel { background: var(--accent-soft); }
+  .ml-item.sel .ml-t { color: var(--accent); font-weight: 500; }
+  .ml-item.sel .ml-bar { background: var(--accent) !important; }
+
+  .detail {
+    overflow: visible;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding: 16px 14px 32px;
+  }
+
+  /* 长公式在窄屏上缩小字号，仍超宽时可横向滑动 */
+  .formula-box { padding: 10px 11px; -webkit-overflow-scrolling: touch; }
+  .formula-box .katex { font-size: .84em; }
+  .detail-head h3 { font-size: 17px; }
+
+  /* --- 函数实验室：函数输入 → 图 → 参数 → 数值，图不再被挤到屏幕外 --- */
+  #view-lab.active { height: auto; }
+  #view-lab .lab {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+  #view-lab .lab-side { display: contents; }
+  #view-lab .lab-fn {
+    order: 1;
+    padding: 14px 14px 12px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+  }
+  #view-lab .lab-main { display: contents; }
+  #view-lab .plot-toolbar { order: 2; }
+  #view-lab .plot-box {
+    order: 3;
+    flex: 0 0 auto;
+    height: 46vh;
+    min-height: 250px;
+  }
+  #view-lab .lab-opts {
+    order: 4;
+    padding: 6px 14px 16px;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+  }
+  #view-lab .plot-panel {
+    order: 5;
+    border-top: 1px solid var(--line);
+  }
+
+  /* --- 定理检验：控制区在上、图与结论在下 --- */
+  #view-theorem.active { height: auto; }
+  #view-theorem .lab {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+  #view-theorem .lab-side {
+    order: 1;
+    max-height: none;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 14px;
+  }
+  #view-theorem .lab-main {
+    order: 2;
+    display: block;
+  }
+
+  .plot-panel { max-height: none; overflow: visible; padding: 12px 14px 18px; }
+  .plot-toolbar { padding: 8px 14px; }
+  .plot-readout { font-size: 10.5px; padding: 4px 7px; }
+
+  .num-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .two-col { grid-template-columns: 1fr; }
+  .metric .v { font-size: 13.5px; }
+
+  /* --- 错题本 --- */
+  .notebook { padding: 16px 14px 44px; }
+  .mistake .duo { grid-template-columns: 1fr; gap: 8px; }
+  .form-panel { position: static; }
   .stats { grid-template-columns: repeat(2, 1fr); }
+
+  /* --- AI 助教：对话区内部滚动，输入条固定在底部 --- */
+  #view-tutor.active { height: 100%; }
+  .tutor { display: flex; flex-direction: column; height: 100%; }
+  .chat-col { flex: 1; min-height: 0; }
+  .chat-log { padding: 14px 14px 8px; }
+  .msg { margin-bottom: 14px; }
+  .suggest { padding: 0 14px 10px; }
+  .composer { padding: 10px 14px 12px; }
+  .tutor-side { display: none; }
+
+  /* 输入框字号必须 ≥16px，否则 iOS Safari 聚焦时会自动放大页面 */
+  input, select, textarea, .field, .fn-input input { font-size: 16px; }
+  .fn-input input { height: 40px; }
+  .composer textarea { font-size: 16px; }
+
+  /* 提示浮层移到页面上方，避免遮住底部输入框与标签栏 */
+  .toast {
+    bottom: auto;
+    top: calc(66px + env(safe-area-inset-top, 0px));
+    right: 14px;
+    left: auto;
+    max-width: calc(100vw - 28px);
+  }
 }

@@ -29,9 +29,76 @@ window.Graph = (function () {
     return Math.min(202, Math.max(106, 32 + node.title.length * 12.4));
   }
 
+  const isMobile = () => window.matchMedia('(max-width: 860px)').matches;
+
+  /* 移动端：纵向按章分组列表。窄屏下把有向图压到手机宽度会挤成
+     两三个字的节点，横向拖动也很难对准，列表反而更快找到知识点。 */
+  function buildMobile() {
+    const host = document.getElementById('mapCanvas');
+    svg = document.getElementById('mapSvg');
+    svg.innerHTML = '';
+    svg.style.display = 'none';
+    layout = {}; edgeEls = []; nodeEls = {};
+
+    let list = host.querySelector('.map-list');
+    if (!list) {
+      list = document.createElement('div');
+      list.className = 'map-list';
+      host.appendChild(list);
+    }
+    list.innerHTML = '';
+
+    const kb = window.KB;
+    kb.chapters.forEach(ch => {
+      const group = document.createElement('div');
+      group.className = 'ml-group';
+      group.dataset.ch = ch.id;
+
+      const head = document.createElement('div');
+      head.className = 'ml-ch';
+      head.innerHTML = `<span class="ml-idx">${ch.idx}</span>` +
+        `<span class="ml-name">${ch.title}</span>` +
+        `<span class="ml-count">${kb.byChapter[ch.id].length}</span>`;
+      group.appendChild(head);
+
+      kb.byChapter[ch.id].forEach(n => {
+        const btn = document.createElement('button');
+        btn.className = 'ml-item';
+        btn.dataset.id = n.id;
+        btn.innerHTML =
+          `<span class="ml-bar" style="background:${n.level === 'core' ? ch.color : '#CFCABC'}"></span>` +
+          `<span class="ml-body"><span class="ml-t">${n.title}</span>` +
+          `<span class="ml-s">${n.sub}</span></span>` +
+          `<span class="ml-arrow">›</span>`;
+        btn.addEventListener('click', () => select(n.id, true));
+        group.appendChild(btn);
+        nodeEls[n.id] = btn;
+      });
+      list.appendChild(group);
+    });
+
+    if (selected && nodeEls[selected]) nodeEls[selected].classList.add('sel');
+  }
+
+  /* 移动端搜索后：把没有命中项的章节整组收起，并更新计数 */
+  function syncMobileGroups() {
+    const q = (document.getElementById('mapSearch') || {}).value || '';
+    document.querySelectorAll('#mapCanvas .ml-group').forEach(g => {
+      const items = Array.from(g.querySelectorAll('.ml-item'));
+      const shown = items.filter(i => !i.classList.contains('dim'));
+      g.style.display = (q.trim() && !shown.length) ? 'none' : '';
+      const c = g.querySelector('.ml-count');
+      if (c) c.textContent = String(shown.length);
+    });
+  }
+
   function build() {
     svg = document.getElementById('mapSvg');
     const host = document.getElementById('mapCanvas');
+    const oldList = host.querySelector('.map-list');
+    if (oldList) oldList.remove();
+    svg.style.display = '';
+    if (isMobile()) { buildMobile(); return; }
     svg.innerHTML = '';
     layout = {};
     edgeEls = [];
@@ -107,7 +174,7 @@ window.Graph = (function () {
       g.appendChild(idx); g.appendChild(t);
       g.addEventListener('click', () => {
         const first = window.KB.byChapter[b.ch.id][0];
-        if (first) select(first.id);
+        if (first) select(first.id, true);
       });
       gCh.appendChild(g);
     });
@@ -173,7 +240,7 @@ window.Graph = (function () {
 
       g.appendChild(t1); g.appendChild(t2);
 
-      g.addEventListener('click', () => select(n.id));
+      g.addEventListener('click', () => select(n.id, true));
       g.addEventListener('mouseenter', () => focus(n.id, true));
       g.addEventListener('mouseleave', () => focus(selected, false));
 
@@ -210,18 +277,19 @@ window.Graph = (function () {
     });
   }
 
-  function select(id) {
+  function select(id, fromUser) {
     selected = id;
     Object.values(nodeEls).forEach(e => e.classList.remove('sel'));
     if (nodeEls[id]) nodeEls[id].classList.add('sel');
     focus(id, false);
-    if (window.onNodeSelect) window.onNodeSelect(id);
+    if (window.onNodeSelect) window.onNodeSelect(id, !!fromUser);
   }
 
   function filter(q) {
     q = (q || '').trim().toLowerCase();
     if (!q) {
       Object.values(nodeEls).forEach(e => e.classList.remove('dim', 'far'));
+      if (isMobile()) syncMobileGroups();
       focus(selected, false);
       return 0;
     }
@@ -237,6 +305,7 @@ window.Graph = (function () {
       }
     });
     edgeEls.forEach(e => e.classList.add('mute'));
+    if (isMobile()) syncMobileGroups();
     return hit;
   }
 

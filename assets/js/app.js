@@ -220,8 +220,14 @@ window.App = (function () {
       if (e.target.id === 'settingsOverlay') e.currentTarget.classList.remove('on');
     });
     $('btnCfgSave').addEventListener('click', () => {
+      const base = $('cfgBase').value.trim().replace(/\/$/, '');
+      // 只接受 https：密钥要随请求头发出去，明文 http 会把它暴露在链路上
+      if (base && !/^https:\/\//i.test(base)) {
+        toast('接口地址必须以 https:// 开头，否则密钥会在传输中明文暴露');
+        return;
+      }
       window.Tutor.saveCfg(
-        $('cfgBase').value.trim().replace(/\/$/, ''),
+        base,
         $('cfgKey').value.trim(),
         $('cfgModel').value.trim()
       );

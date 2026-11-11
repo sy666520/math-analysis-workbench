@@ -1,0 +1,26 @@
+# 依赖与构建产物
+node_modules/
+dist/
+build/
+
+# 测试 / 截图临时目录
+_shots/
+_mob/
+*.log
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
+
+# 证书与密钥：任何情况下都不入库
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*

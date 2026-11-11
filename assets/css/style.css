@@ -1175,7 +1175,8 @@ table.tbl tr:last-child td { border-bottom: 0; }
   }
   .brand, .nav-label, .side-foot { display: none; }
   nav.nav { flex-direction: row; gap: 0; flex: 1; }
-  .nav-item {
+  /* 只作用于底部标签栏：定理选择按钮复用了 .nav-item 类，不能被误伤 */
+  #nav .nav-item {
     flex: 1;
     flex-direction: column;
     justify-content: center;
@@ -1185,10 +1186,10 @@ table.tbl tr:last-child td { border-bottom: 0; }
     border-radius: 0;
     min-width: 0;
   }
-  .nav-item span:not(.nav-key) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-  .nav-item svg { width: 20px; height: 20px; flex: 0 0 20px; }
-  .nav-item .nav-key { display: none; }
-  .nav-item.active::before {
+  #nav .nav-item span:not(.nav-key) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  #nav .nav-item svg { width: 20px; height: 20px; flex: 0 0 20px; }
+  #nav .nav-item .nav-key { display: none; }
+  #nav .nav-item.active::before {
     left: 24%; right: 24%;
     top: 0; bottom: auto;
     width: auto; height: 2.5px;

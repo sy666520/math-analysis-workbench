@@ -1155,9 +1155,27 @@ table.tbl tr:last-child td { border-bottom: 0; }
 }
 
 /* ============================================================
-   移动端（≤ 860px）：侧边栏 → 底部标签栏，整页自然滚动
+   窄屏 · 鼠标设备（桌面窗口缩小、高分屏放大缩放）
+   保持原来的形态：侧边栏收成图标条，不使用移动端改造
    ============================================================ */
-@media (max-width: 860px) {
+@media (max-width: 900px) and (pointer: fine) {
+  .app { grid-template-columns: 68px 1fr; }
+  .brand-text, .side-foot { display: none; }
+  /* 只收侧边栏的文字：定理选择按钮复用 .nav-item，不能被一起藏掉 */
+  #nav .nav-item span:not(.nav-key) { display: none; }
+  #nav .nav-item { justify-content: center; }
+  .lab { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .lab-side { border-right: 0; border-bottom: 1px solid var(--line); max-height: 260px; }
+  .tutor { grid-template-columns: 1fr; }
+  .tutor-side { display: none; }
+}
+
+/* ============================================================
+   移动端（≤ 860px 且触屏）：侧边栏 → 底部标签栏，整页自然滚动
+   只对触屏设备生效——桌面浏览器把窗口拉窄时仍走上面的原始窄栏，
+   不会突然变成手机版。
+   ============================================================ */
+@media (max-width: 860px) and (pointer: coarse) {
   .app {
     display: flex;
     flex-direction: column;

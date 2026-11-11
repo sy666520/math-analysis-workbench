@@ -29,7 +29,10 @@ window.Graph = (function () {
     return Math.min(202, Math.max(106, 32 + node.title.length * 12.4));
   }
 
-  const isMobile = () => window.matchMedia('(max-width: 860px)').matches;
+  /* 与 style.css 里的移动端断点保持一致：窄屏 + 触屏才走手机版列表。
+     仅把窗口拉窄的桌面浏览器仍用原来的有向图。 */
+  const MOBILE_MQ = '(max-width: 860px) and (pointer: coarse)';
+  const isMobile = () => window.matchMedia(MOBILE_MQ).matches;
 
   /* 移动端：纵向按章分组列表。窄屏下把有向图压到手机宽度会挤成
      两三个字的节点，横向拖动也很难对准，列表反而更快找到知识点。 */

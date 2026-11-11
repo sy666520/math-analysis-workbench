@@ -57,7 +57,9 @@ window.App = (function () {
     return window.KB.chapters.find(c => c.id === node.ch);
   }
 
-  const isNarrow = () => window.matchMedia('(max-width: 860px)').matches;
+  /* 与 style.css 的移动端断点一致：窄屏 + 触屏才算手机版，
+     桌面浏览器缩窗口时仍是原来的右侧详情面板。 */
+  const isNarrow = () => window.matchMedia('(max-width: 860px) and (pointer: coarse)').matches;
 
   /* 窄屏详情页：整页推入 + 返回。用 history 记录一层，
      这样安卓返回键、浏览器返回都是「回到列表」而不是退出整个站点。 */
